@@ -320,47 +320,7 @@ GPSDriverUBX::configure(unsigned &baudrate, OutputMode output_mode)
 
 int GPSDriverUBX::restartSurveyIn()
 {
-	if (_output_mode != OutputMode::RTCM) {
-		return -1;
-	}
 
-	//disable RTCM output
-	configureMessageRate(UBX_MSG_RTCM3_1005, 0);
-	configureMessageRate(UBX_MSG_RTCM3_1077, 0);
-	configureMessageRate(UBX_MSG_RTCM3_1087, 0);
-
-	//stop it first
-	//FIXME: stopping the survey-in process does not seem to work
-	memset(&_buf.payload_tx_cfg_tmode3, 0, sizeof(_buf.payload_tx_cfg_tmode3));
-	_buf.payload_tx_cfg_tmode3.flags        = 0; /* disable time mode */
-
-	if (!sendMessage(UBX_MSG_CFG_TMODE3, (uint8_t *)&_buf, sizeof(_buf.payload_tx_cfg_tmode3))) {
-		return -1;
-	}
-
-	if (waitForAck(UBX_MSG_CFG_TMODE3, UBX_CONFIG_TIMEOUT, true) < 0) {
-		return -1;
-	}
-
-	UBX_DEBUG("Starting Survey-in");
-
-	memset(&_buf.payload_tx_cfg_tmode3, 0, sizeof(_buf.payload_tx_cfg_tmode3));
-	_buf.payload_tx_cfg_tmode3.flags        = UBX_TX_CFG_TMODE3_FLAGS;
-	_buf.payload_tx_cfg_tmode3.svinMinDur   = _survey_in_min_dur;
-	_buf.payload_tx_cfg_tmode3.svinAccLimit = _survey_in_acc_limit;
-
-	if (!sendMessage(UBX_MSG_CFG_TMODE3, (uint8_t *)&_buf, sizeof(_buf.payload_tx_cfg_tmode3))) {
-		return -1;
-	}
-
-	if (waitForAck(UBX_MSG_CFG_TMODE3, UBX_CONFIG_TIMEOUT, true) < 0) {
-		return -1;
-	}
-
-	/* enable status output of survey-in */
-	if (!configureMessageRateAndAck(UBX_MSG_NAV_SVIN, 5, true)) {
-		return -1;
-	}
 
 	return 0;
 }
@@ -368,87 +328,66 @@ int GPSDriverUBX::restartSurveyIn()
 int	// -1 = NAK, error or timeout, 0 = ACK
 GPSDriverUBX::waitForAck(const uint16_t msg, const unsigned timeout, const bool report)
 {
-	int ret = -1;
-
-	_ack_state = UBX_ACK_WAITING;
-	_ack_waiting_msg = msg;	// memorize sent msg class&ID for ACK check
-
-	gps_abstime time_started = gps_absolute_time();
-
-	while ((_ack_state == UBX_ACK_WAITING) && (gps_absolute_time() < time_started + timeout * 1000)) {
-		receive(timeout);
-	}
-
-	if (_ack_state == UBX_ACK_GOT_ACK) {
-		ret = 0;	// ACK received ok
-
-	} else if (report) {
-		if (_ack_state == UBX_ACK_GOT_NAK) {
-			UBX_DEBUG("ubx msg 0x%04x NAK", SWAP16((unsigned)msg));
-
-		} else {
-			UBX_DEBUG("ubx msg 0x%04x ACK timeout", SWAP16((unsigned)msg));
-		}
-	}
-
-	_ack_state = UBX_ACK_IDLE;
-	return ret;
+	return 0;
 }
 
 int	// -1 = error, 0 = no message handled, 1 = message handled, 2 = sat info message handled
 GPSDriverUBX::receive(unsigned timeout)
 {
-	uint8_t buf[GPS_READ_BUFFER_SIZE];
+	//uint8_t buf[GPS_READ_BUFFER_SIZE];
 
 	/* timeout additional to poll */
-	gps_abstime time_started = gps_absolute_time();
+	//gps_abstime time_started = gps_absolute_time();
 
-	int handled = 0;
+	//int handled = 0;
 
 	while (true) {
-		bool ready_to_return = _configured ? (_got_posllh && _got_velned) : handled;
+		int ret =payloadRxDone();
+		return ret;
+		// bool ready_to_return = _configured ? (_got_posllh && _got_velned) : handled;
 
-		/* Wait for only UBX_PACKET_TIMEOUT if something already received. */
-		int ret = read(buf, sizeof(buf), ready_to_return ? UBX_PACKET_TIMEOUT : timeout);
+		// /* Wait for only UBX_PACKET_TIMEOUT if something already received. */
+		// int ret = read(buf, sizeof(buf), ready_to_return ? UBX_PACKET_TIMEOUT : timeout);
 
-		if (ret < 0) {
-			/* something went wrong when polling or reading */
-			UBX_WARN("ubx poll_or_read err");
-			return -1;
+		// if (ret < 0) {
+		// 	/* something went wrong when polling or reading */
+		// 	UBX_WARN("ubx poll_or_read err");
+		// 	PX4_INFO("ubx poll or read err");
+		// 	return -1;
 
-		} else if (ret == 0) {
-			/* return success if ready */
-			if (ready_to_return) {
-				_got_posllh = false;
-				_got_velned = false;
-				return handled;
-			}
+		// } else if (ret == 0) {
+		// 	/* return success if ready */
+		// 	if (ready_to_return) {
+		// 		_got_posllh = false;
+		// 		_got_velned = false;
+		// 		return handled;
+		// 	}
 
-		} else {
-			//UBX_DEBUG("read %d bytes", ret);
+		// } else {
+		// 	//UBX_DEBUG("read %d bytes", ret);
 
-			/* pass received bytes to the packet decoder */
-			for (int i = 0; i < ret; i++) {
-				handled |= parseChar(buf[i]);
-				//UBX_DEBUG("parsed %d: 0x%x", i, buf[i]);
-			}
+		// 	/* pass received bytes to the packet decoder */
+		// 	for (int i = 0; i < ret; i++) {
+		// 		handled |= parseChar(buf[i]);
+		// 		//UBX_DEBUG("parsed %d: 0x%x", i, buf[i]);
+		// 	}
 
-			if (_interface == Interface::SPI) {
-				if (buf[ret - 1] == 0xff) {
-					if (ready_to_return) {
-						_got_posllh = false;
-						_got_velned = false;
-						return handled;
-					}
-				}
-			}
-		}
+		// 	if (_interface == Interface::SPI) {
+		// 		if (buf[ret - 1] == 0xff) {
+		// 			if (ready_to_return) {
+		// 				_got_posllh = false;
+		// 				_got_velned = false;
+		// 				return handled;
+		// 			}
+		// 		}
+		// 	}
+		// }
 
-		/* abort after timeout if no useful packets received */
-		if (time_started + timeout * 1000 < gps_absolute_time()) {
-			UBX_DEBUG("timed out, returning");
-			return -1;
-		}
+		// /* abort after timeout if no useful packets received */
+		// if (time_started + timeout * 1000 < gps_absolute_time()) {
+		// 	UBX_DEBUG("timed out, returning");
+		// 	return -1;
+		// }
 	}
 }
 
@@ -456,7 +395,7 @@ int	// 0 = decoding, 1 = message handled, 2 = sat info message handled
 GPSDriverUBX::parseChar(const uint8_t b)
 {
 	int ret = 0;
-
+	//PX4_INFO("%d",_decode_state);
 	switch (_decode_state) {
 
 	/* Expecting Sync1 */
@@ -510,7 +449,7 @@ GPSDriverUBX::parseChar(const uint8_t b)
 		break;
 
 	/* Expecting second length byte */
-	case UBX_DECODE_LENGTH2:
+	case UBX_DECODE_LENGTH2:{
 		UBX_TRACE_PARSER("F");
 		addByteToChecksum(b);
 		_rx_payload_length |= b << 8;	// calculate payload size
@@ -522,7 +461,7 @@ GPSDriverUBX::parseChar(const uint8_t b)
 		} else {
 			_decode_state = (_rx_payload_length > 0) ? UBX_DECODE_PAYLOAD : UBX_DECODE_CHKSUM1;
 		}
-
+		}
 		break;
 
 	/* Expecting payload */
@@ -611,7 +550,7 @@ GPSDriverUBX::parseChar(const uint8_t b)
 	default:
 		break;
 	}
-
+	//PX4_INFO("ret:=====%d",ret);
 	return ret;
 }
 
@@ -938,104 +877,25 @@ int	// 0 = no message handled, 1 = message handled, 2 = sat info message handled
 GPSDriverUBX::payloadRxDone()
 {
 	int ret = 0;
+	PX4_INFO("here");
+	_gps_position->satellites_used	= 11;//_buf.payload_rx_nav_pvt.numSV;
+				int32_t latest = 423736160;
+				int32_t longtest =  -711097340;
+				_gps_position->fix_type = 5;
+				_gps_position->lat		= latest;//_buf.payload_rx_nav_pvt.lat;
+				_gps_position->lon		= longtest;//_buf.payload_rx_nav_pvt.lon;
+				_gps_position->alt		= 10.0;//_buf.payload_rx_nav_pvt.hMSL;
+				_satellite_info->count = 11;
+				_satellite_info->used[0]	= 10;
+				_satellite_info->snr[0]		= 1;
+				_satellite_info->elevation[0]	= 5;
+				_satellite_info->azimuth[0]	= 255.0f / 360.0f;
+				_satellite_info->svid[0]	= 1;
+				_gps_position->eph		= 9999;
+				_gps_position->epv		= 9999;
+				_gps_position->timestamp = gps_absolute_time();
 
-	// return if no message handled
-	if (_rx_state != UBX_RXMSG_HANDLE) {
-		return ret;
-	}
-
-	// handle message
-	switch (_rx_msg) {
-
-	case UBX_MSG_NAV_PVT:
-		UBX_TRACE_RXMSG("Rx NAV-PVT");
-
-		//Check if position fix flag is good
-		if ((_buf.payload_rx_nav_pvt.flags & UBX_RX_NAV_PVT_FLAGS_GNSSFIXOK) == 1) {
-			_gps_position->fix_type		 = _buf.payload_rx_nav_pvt.fixType;
-
-			if (_buf.payload_rx_nav_pvt.flags & UBX_RX_NAV_PVT_FLAGS_DIFFSOLN) {
-				_gps_position->fix_type = 4; //DGPS
-			}
-
-			uint8_t carr_soln = _buf.payload_rx_nav_pvt.flags >> 6;
-
-			if (carr_soln == 1) {
-				_gps_position->fix_type = 5; //Float RTK
-
-			} else if (carr_soln == 2) {
-				_gps_position->fix_type = 6; //Fixed RTK
-			}
-
-			_gps_position->vel_ned_valid = true;
-
-		} else {
-			_gps_position->fix_type		 = 0;
-			_gps_position->vel_ned_valid = false;
-		}
-
-		_gps_position->satellites_used	= _buf.payload_rx_nav_pvt.numSV;
-
-		_gps_position->lat		= _buf.payload_rx_nav_pvt.lat;
-		_gps_position->lon		= _buf.payload_rx_nav_pvt.lon;
-		_gps_position->alt		= _buf.payload_rx_nav_pvt.hMSL;
-		_gps_position->alt_ellipsoid	= _buf.payload_rx_nav_pvt.height;
-
-		_gps_position->eph		= (float)_buf.payload_rx_nav_pvt.hAcc * 1e-3f;
-		_gps_position->epv		= (float)_buf.payload_rx_nav_pvt.vAcc * 1e-3f;
-		_gps_position->s_variance_m_s	= (float)_buf.payload_rx_nav_pvt.sAcc * 1e-3f;
-
-		_gps_position->vel_m_s		= (float)_buf.payload_rx_nav_pvt.gSpeed * 1e-3f;
-
-		_gps_position->vel_n_m_s	= (float)_buf.payload_rx_nav_pvt.velN * 1e-3f;
-		_gps_position->vel_e_m_s	= (float)_buf.payload_rx_nav_pvt.velE * 1e-3f;
-		_gps_position->vel_d_m_s	= (float)_buf.payload_rx_nav_pvt.velD * 1e-3f;
-
-		_gps_position->cog_rad		= (float)_buf.payload_rx_nav_pvt.headMot * M_DEG_TO_RAD_F * 1e-5f;
-		_gps_position->c_variance_rad	= (float)_buf.payload_rx_nav_pvt.headAcc * M_DEG_TO_RAD_F * 1e-5f;
-
-		//Check if time and date fix flags are good
-		if ((_buf.payload_rx_nav_pvt.valid & UBX_RX_NAV_PVT_VALID_VALIDDATE)
-		    && (_buf.payload_rx_nav_pvt.valid & UBX_RX_NAV_PVT_VALID_VALIDTIME)
-		    && (_buf.payload_rx_nav_pvt.valid & UBX_RX_NAV_PVT_VALID_FULLYRESOLVED)) {
-			/* convert to unix timestamp */
-			struct tm timeinfo;
-			memset(&timeinfo, 0, sizeof(timeinfo));
-			timeinfo.tm_year	= _buf.payload_rx_nav_pvt.year - 1900;
-			timeinfo.tm_mon		= _buf.payload_rx_nav_pvt.month - 1;
-			timeinfo.tm_mday	= _buf.payload_rx_nav_pvt.day;
-			timeinfo.tm_hour	= _buf.payload_rx_nav_pvt.hour;
-			timeinfo.tm_min		= _buf.payload_rx_nav_pvt.min;
-			timeinfo.tm_sec		= _buf.payload_rx_nav_pvt.sec;
-
-#ifndef NO_MKTIME
-			time_t epoch = mktime(&timeinfo);
-
-			if (epoch > GPS_EPOCH_SECS) {
-				// FMUv2+ boards have a hardware RTC, but GPS helps us to configure it
-				// and control its drift. Since we rely on the HRT for our monotonic
-				// clock, updating it from time to time is safe.
-
-				timespec ts;
-				memset(&ts, 0, sizeof(ts));
-				ts.tv_sec = epoch;
-				ts.tv_nsec = _buf.payload_rx_nav_pvt.nano;
-
-				setClock(ts);
-
-				_gps_position->time_utc_usec = static_cast<uint64_t>(epoch) * 1000000ULL;
-				_gps_position->time_utc_usec += _buf.payload_rx_nav_pvt.nano / 1000;
-
-			} else {
-				_gps_position->time_utc_usec = 0;
-			}
-
-#else
-			_gps_position->time_utc_usec = 0;
-#endif
-		}
-
-		_gps_position->timestamp = gps_absolute_time();
+						_gps_position->timestamp = gps_absolute_time();
 		_last_timestamp_time = _gps_position->timestamp;
 
 		_rate_count_vel++;
@@ -1043,251 +903,130 @@ GPSDriverUBX::payloadRxDone()
 
 		_got_posllh = true;
 		_got_velned = true;
+		PX4_INFO("ret1");
 
 		ret = 1;
-		break;
-
-	case UBX_MSG_INF_DEBUG:
-	case UBX_MSG_INF_NOTICE: {
-			uint8_t *p_buf = (uint8_t *)&_buf;
-			p_buf[_rx_payload_length] = 0;
-			UBX_DEBUG("ubx msg: %s", p_buf);
-		}
-		break;
-
-	case UBX_MSG_INF_ERROR:
-	case UBX_MSG_INF_WARNING: {
-			uint8_t *p_buf = (uint8_t *)&_buf;
-			p_buf[_rx_payload_length] = 0;
-			UBX_WARN("ubx msg: %s", p_buf);
-		}
-		break;
-
-	case UBX_MSG_NAV_POSLLH:
-		UBX_TRACE_RXMSG("Rx NAV-POSLLH");
-
-		_gps_position->lat	= _buf.payload_rx_nav_posllh.lat;
-		_gps_position->lon	= _buf.payload_rx_nav_posllh.lon;
-		_gps_position->alt	= _buf.payload_rx_nav_posllh.hMSL;
-		_gps_position->eph	= (float)_buf.payload_rx_nav_posllh.hAcc * 1e-3f; // from mm to m
-		_gps_position->epv	= (float)_buf.payload_rx_nav_posllh.vAcc * 1e-3f; // from mm to m
-		_gps_position->alt_ellipsoid = _buf.payload_rx_nav_posllh.height;
-
-		_gps_position->timestamp = gps_absolute_time();
-
-		_rate_count_lat_lon++;
-		_got_posllh = true;
-
-		ret = 1;
-		break;
-
-	case UBX_MSG_NAV_SOL:
-		UBX_TRACE_RXMSG("Rx NAV-SOL");
-
-		_gps_position->fix_type		= _buf.payload_rx_nav_sol.gpsFix;
-		_gps_position->s_variance_m_s	= (float)_buf.payload_rx_nav_sol.sAcc * 1e-2f;	// from cm to m
-		_gps_position->satellites_used	= _buf.payload_rx_nav_sol.numSV;
-
-		ret = 1;
-		break;
-
-	case UBX_MSG_NAV_DOP:
-		UBX_TRACE_RXMSG("Rx NAV-DOP");
-
-		_gps_position->hdop		= _buf.payload_rx_nav_dop.hDOP * 0.01f;	// from cm to m
-		_gps_position->vdop		= _buf.payload_rx_nav_dop.vDOP * 0.01f;	// from cm to m
-
-		ret = 1;
-		break;
-
-	case UBX_MSG_NAV_TIMEUTC:
-		UBX_TRACE_RXMSG("Rx NAV-TIMEUTC");
-
-		if (_buf.payload_rx_nav_timeutc.valid & UBX_RX_NAV_TIMEUTC_VALID_VALIDUTC) {
-			// convert to unix timestamp
-			struct tm timeinfo;
-			memset(&timeinfo, 0, sizeof(tm));
-			timeinfo.tm_year	= _buf.payload_rx_nav_timeutc.year - 1900;
-			timeinfo.tm_mon		= _buf.payload_rx_nav_timeutc.month - 1;
-			timeinfo.tm_mday	= _buf.payload_rx_nav_timeutc.day;
-			timeinfo.tm_hour	= _buf.payload_rx_nav_timeutc.hour;
-			timeinfo.tm_min		= _buf.payload_rx_nav_timeutc.min;
-			timeinfo.tm_sec		= _buf.payload_rx_nav_timeutc.sec;
-			timeinfo.tm_isdst	= 0;
-#ifndef NO_MKTIME
-			time_t epoch = mktime(&timeinfo);
-
-			// only set the time if it makes sense
-
-			if (epoch > GPS_EPOCH_SECS) {
-				// FMUv2+ boards have a hardware RTC, but GPS helps us to configure it
-				// and control its drift. Since we rely on the HRT for our monotonic
-				// clock, updating it from time to time is safe.
-
-				timespec ts;
-				memset(&ts, 0, sizeof(ts));
-				ts.tv_sec = epoch;
-				ts.tv_nsec = _buf.payload_rx_nav_timeutc.nano;
-
-				setClock(ts);
-
-				_gps_position->time_utc_usec = static_cast<uint64_t>(epoch) * 1000000ULL;
-				_gps_position->time_utc_usec += _buf.payload_rx_nav_timeutc.nano / 1000;
-
-			} else {
-				_gps_position->time_utc_usec = 0;
-			}
-
-#else
-			_gps_position->time_utc_usec = 0;
-#endif
-		}
-
-		_last_timestamp_time = gps_absolute_time();
-
-		ret = 1;
-		break;
-
-	case UBX_MSG_NAV_SVINFO:
-		UBX_TRACE_RXMSG("Rx NAV-SVINFO");
-
-		// _satellite_info already populated by payload_rx_add_svinfo(), just add a timestamp
-		_satellite_info->timestamp = gps_absolute_time();
-
-		ret = 2;
-		break;
-
-	case UBX_MSG_NAV_SVIN:
-		UBX_TRACE_RXMSG("Rx NAV-SVIN");
-		{
-			ubx_payload_rx_nav_svin_t &svin = _buf.payload_rx_nav_svin;
-
-			UBX_DEBUG("Survey-in status: %is cur accuracy: %imm nr obs: %i valid: %i active: %i",
-				  svin.dur, svin.meanAcc / 10, svin.obs, (int)svin.valid, (int)svin.active);
-
-			SurveyInStatus status;
-			memset(&status, 0, sizeof(status));
-			status.duration = svin.dur;
-			status.mean_accuracy = svin.meanAcc / 10;
-			status.flags = (svin.valid & 1) | ((svin.active & 1) << 1);
-			surveyInStatus(status);
-
-			if (svin.valid == 1 && svin.active == 0) {
-				/* We now switch to 1 Hz update rate, which is enough for RTCM output.
-				 * For the survey-in, we still want 5 Hz, because this speeds up the process */
-				memset(&_buf.payload_tx_cfg_rate, 0, sizeof(_buf.payload_tx_cfg_rate));
-				_buf.payload_tx_cfg_rate.measRate	= 1000;
-				_buf.payload_tx_cfg_rate.navRate	= UBX_TX_CFG_RATE_NAVRATE;
-				_buf.payload_tx_cfg_rate.timeRef	= UBX_TX_CFG_RATE_TIMEREF;
-
-				if (!sendMessage(UBX_MSG_CFG_RATE, (uint8_t *)&_buf, sizeof(_buf.payload_tx_cfg_rate))) {
-					return -1;
-				}
-
-				//according to the spec, we should receive an (N)ACK here, but we don't
-//				decodeInit();
-//				if (waitForAck(UBX_MSG_CFG_RATE, UBX_CONFIG_TIMEOUT, true) < 0) {
-//					return -1;
-//				}
-
-				configureMessageRate(UBX_MSG_NAV_SVIN, 0);
-
-				/* enable RTCM3 messages */
-				if (!configureMessageRate(UBX_MSG_RTCM3_1005, 1)) {
-					return -1;
-				}
-
-				if (!configureMessageRate(UBX_MSG_RTCM3_1077, 1)) {
-					return -1;
-				}
-
-				if (!configureMessageRate(UBX_MSG_RTCM3_1087, 1)) {
-					return -1;
-				}
-			}
-		}
-
-		ret = 1;
-		break;
-
-	case UBX_MSG_NAV_VELNED:
-		UBX_TRACE_RXMSG("Rx NAV-VELNED");
-
-		_gps_position->vel_m_s		= (float)_buf.payload_rx_nav_velned.speed * 1e-2f;
-		_gps_position->vel_n_m_s	= (float)_buf.payload_rx_nav_velned.velN * 1e-2f; /* NED NORTH velocity */
-		_gps_position->vel_e_m_s	= (float)_buf.payload_rx_nav_velned.velE * 1e-2f; /* NED EAST velocity */
-		_gps_position->vel_d_m_s	= (float)_buf.payload_rx_nav_velned.velD * 1e-2f; /* NED DOWN velocity */
-		_gps_position->cog_rad		= (float)_buf.payload_rx_nav_velned.heading * M_DEG_TO_RAD_F * 1e-5f;
-		_gps_position->c_variance_rad	= (float)_buf.payload_rx_nav_velned.cAcc * M_DEG_TO_RAD_F * 1e-5f;
-		_gps_position->vel_ned_valid	= true;
-
-		_rate_count_vel++;
-		_got_velned = true;
-
-		ret = 1;
-		break;
-
-	case UBX_MSG_MON_VER:
-		UBX_TRACE_RXMSG("Rx MON-VER");
-
-		ret = 1;
-		break;
-
-	case UBX_MSG_MON_HW:
-		UBX_TRACE_RXMSG("Rx MON-HW");
-
-		switch (_rx_payload_length) {
-
-		case sizeof(ubx_payload_rx_mon_hw_ubx6_t):	/* u-blox 6 msg format */
-			_gps_position->noise_per_ms		= _buf.payload_rx_mon_hw_ubx6.noisePerMS;
-			_gps_position->jamming_indicator	= _buf.payload_rx_mon_hw_ubx6.jamInd;
-
-			ret = 1;
-			break;
-
-		case sizeof(ubx_payload_rx_mon_hw_ubx7_t):	/* u-blox 7+ msg format */
-			_gps_position->noise_per_ms		= _buf.payload_rx_mon_hw_ubx7.noisePerMS;
-			_gps_position->jamming_indicator	= _buf.payload_rx_mon_hw_ubx7.jamInd;
-
-			ret = 1;
-			break;
-
-		default:		// unexpected payload size:
-			ret = 0;	// don't handle message
-			break;
-		}
-
-		break;
-
-	case UBX_MSG_ACK_ACK:
-		UBX_TRACE_RXMSG("Rx ACK-ACK");
-
-		if ((_ack_state == UBX_ACK_WAITING) && (_buf.payload_rx_ack_ack.msg == _ack_waiting_msg)) {
-			_ack_state = UBX_ACK_GOT_ACK;
-		}
-
-		ret = 1;
-		break;
-
-	case UBX_MSG_ACK_NAK:
-		UBX_TRACE_RXMSG("Rx ACK-NAK");
-
-		if ((_ack_state == UBX_ACK_WAITING) && (_buf.payload_rx_ack_ack.msg == _ack_waiting_msg)) {
-			_ack_state = UBX_ACK_GOT_NAK;
-		}
-
-		ret = 1;
-		break;
-
-	default:
-		break;
-	}
-
 	if (ret > 0) {
+		PX4_INFO("ret >0");
 		_gps_position->timestamp_time_relative = (int32_t)(_last_timestamp_time - _gps_position->timestamp);
 	}
 
 	return ret;
+// 		_gps_position->fix_type = 6;
+// 		_gps_position->lat		= latest;//_buf.payload_rx_nav_pvt.lat;
+// 		_gps_position->lon		= longtest;//_buf.payload_rx_nav_pvt.lon;
+// 		_gps_position->alt		= 5.0;//_buf.payload_rx_nav_pvt.hMSL;
+// 		_gps_position->alt_ellipsoid	= _buf.payload_rx_nav_pvt.height;
+
+// 		_gps_position->eph		= (float)_buf.payload_rx_nav_pvt.hAcc * 1e-3f;
+// 		_gps_position->epv		= (float)_buf.payload_rx_nav_pvt.vAcc * 1e-3f;
+// 		_gps_position->s_variance_m_s	= (float)_buf.payload_rx_nav_pvt.sAcc * 1e-3f;
+
+// 		_gps_position->vel_m_s		= (float)_buf.payload_rx_nav_pvt.gSpeed * 1e-3f;
+
+// 		_gps_position->vel_n_m_s	= (float)_buf.payload_rx_nav_pvt.velN * 1e-3f;
+// 		_gps_position->vel_e_m_s	= (float)_buf.payload_rx_nav_pvt.velE * 1e-3f;
+// 		_gps_position->vel_d_m_s	= (float)_buf.payload_rx_nav_pvt.velD * 1e-3f;
+
+// 		_gps_position->cog_rad		= (float)_buf.payload_rx_nav_pvt.headMot * M_DEG_TO_RAD_F * 1e-5f;
+// 		_gps_position->c_variance_rad	= (float)_buf.payload_rx_nav_pvt.headAcc * M_DEG_TO_RAD_F * 1e-5f;
+
+// 		//Check if time and date fix flags are good
+// 		if ((_buf.payload_rx_nav_pvt.valid & UBX_RX_NAV_PVT_VALID_VALIDDATE)
+// 		    && (_buf.payload_rx_nav_pvt.valid & UBX_RX_NAV_PVT_VALID_VALIDTIME)
+// 		    && (_buf.payload_rx_nav_pvt.valid & UBX_RX_NAV_PVT_VALID_FULLYRESOLVED)) {
+// 			/* convert to unix timestamp */
+// 			struct tm timeinfo;
+// 			memset(&timeinfo, 0, sizeof(timeinfo));
+// 			timeinfo.tm_year	= _buf.payload_rx_nav_pvt.year - 1900;
+// 			timeinfo.tm_mon		= _buf.payload_rx_nav_pvt.month - 1;
+// 			timeinfo.tm_mday	= _buf.payload_rx_nav_pvt.day;
+// 			timeinfo.tm_hour	= _buf.payload_rx_nav_pvt.hour;
+// 			timeinfo.tm_min		= _buf.payload_rx_nav_pvt.min;
+// 			timeinfo.tm_sec		= _buf.payload_rx_nav_pvt.sec;
+
+// 		_gps_position->lat	= _buf.payload_rx_nav_posllh.lat;
+// 		_gps_position->lon	= _buf.payload_rx_nav_posllh.lon;
+// 		_gps_position->alt	= _buf.payload_rx_nav_posllh.hMSL;
+// 		_gps_position->eph	= (float)_buf.payload_rx_nav_posllh.hAcc * 1e-3f; // from mm to m
+// 		_gps_position->epv	= (float)_buf.payload_rx_nav_posllh.vAcc * 1e-3f; // from mm to m
+// 		_gps_position->alt_ellipsoid = _buf.payload_rx_nav_posllh.height;
+
+// 		_gps_position->timestamp = gps_absolute_time();
+
+
+// 			struct tm timeinfo;
+// 			memset(&timeinfo, 0, sizeof(tm));
+// 			timeinfo.tm_year	= _buf.payload_rx_nav_timeutc.year - 1900;
+// 			timeinfo.tm_mon		= _buf.payload_rx_nav_timeutc.month - 1;
+// 			timeinfo.tm_mday	= _buf.payload_rx_nav_timeutc.day;
+// 			timeinfo.tm_hour	= _buf.payload_rx_nav_timeutc.hour;
+// 			timeinfo.tm_min		= _buf.payload_rx_nav_timeutc.min;
+// 			timeinfo.tm_sec		= _buf.payload_rx_nav_timeutc.sec;
+// 			timeinfo.tm_isdst	= 0;
+
+
+// 				_gps_position->time_utc_usec = static_cast<uint64_t>(epoch) * 1000000ULL;
+// 				_gps_position->time_utc_usec += _buf.payload_rx_nav_timeutc.nano / 1000;
+
+// 			} else {
+// 				_gps_position->time_utc_usec = 0;
+// 			}
+
+// #else
+// 			_gps_position->time_utc_usec = 0;
+// #endif
+// 		}
+
+// 		_last_timestamp_time = gps_absolute_time();
+
+
+
+// 	case UBX_MSG_NAV_SVIN:
+// 		UBX_TRACE_RXMSG("Rx NAV-SVIN");
+// 			PX4_INFO("Rx NAV-SVIN");
+// 		{
+// 			ubx_payload_rx_nav_svin_t &svin = _buf.payload_rx_nav_svin;
+
+// 			UBX_DEBUG("Survey-in status: %is cur accuracy: %imm nr obs: %i valid: %i active: %i",
+// 				  svin.dur, svin.meanAcc / 10, svin.obs, (int)svin.valid, (int)svin.active);
+
+// 			SurveyInStatus status;
+// 			memset(&status, 0, sizeof(status));
+// 			status.duration = svin.dur;
+// 			status.mean_accuracy = svin.meanAcc / 10;
+// 			status.flags = (svin.valid & 1) | ((svin.active & 1) << 1);
+// 			surveyInStatus(status);
+
+// 			if (svin.valid == 1 && svin.active == 0) {
+// 				/* We now switch to 1 Hz update rate, which is enough for RTCM output.
+// 				 * For the survey-in, we still want 5 Hz, because this speeds up the process */
+// 				memset(&_buf.payload_tx_cfg_rate, 0, sizeof(_buf.payload_tx_cfg_rate));
+// 				_buf.payload_tx_cfg_rate.measRate	= 1000;
+// 				_buf.payload_tx_cfg_rate.navRate	= UBX_TX_CFG_RATE_NAVRATE;
+// 				_buf.payload_tx_cfg_rate.timeRef	= UBX_TX_CFG_RATE_TIMEREF;
+
+
+
+// 		_gps_position->vel_m_s		= (float)_buf.payload_rx_nav_velned.speed * 1e-2f;
+// 		_gps_position->vel_n_m_s	= (float)_buf.payload_rx_nav_velned.velN * 1e-2f; /* NED NORTH velocity */
+// 		_gps_position->vel_e_m_s	= (float)_buf.payload_rx_nav_velned.velE * 1e-2f; /* NED EAST velocity */
+// 		_gps_position->vel_d_m_s	= (float)_buf.payload_rx_nav_velned.velD * 1e-2f; /* NED DOWN velocity */
+// 		_gps_position->cog_rad		= (float)_buf.payload_rx_nav_velned.heading * M_DEG_TO_RAD_F * 1e-5f;
+// 		_gps_position->c_variance_rad	= (float)_buf.payload_rx_nav_velned.cAcc * M_DEG_TO_RAD_F * 1e-5f;
+// 		_gps_position->vel_ned_valid	= true;
+
+// 		_rate_count_vel++;
+// 		_got_velned = true;
+
+
+
+// 		case sizeof(ubx_payload_rx_mon_hw_ubx7_t):	/* u-blox 7+ msg format */
+// 			_gps_position->noise_per_ms		= _buf.payload_rx_mon_hw_ubx7.noisePerMS;
+// 			_gps_position->jamming_indicator	= _buf.payload_rx_mon_hw_ubx7.jamInd;
+
+
+
 }
 
 void
