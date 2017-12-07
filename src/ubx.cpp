@@ -48,14 +48,116 @@
  * @see https://www2.u-blox.com/images/downloads/Product_Docs/u-blox6-GPS-GLONASS-QZSS-V14_ReceiverDescriptionProtocolSpec_Public_(GPS.G6-SW-12013).pdf
  * @see https://www.u-blox.com/sites/default/files/products/documents/u-bloxM8_ReceiverDescrProtSpec_%28UBX-13003221%29_Public.pdf
  */
+//#define DEFAULT_UART "/dev/ttyS3"
+//#define MAX_MESSAGE_BUFFER_SIZE 45
 
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include <ctime>
+ //#include "edc.h"
 
+//#include <stdint.h>
 #include "ubx.h"
+//#include "px4_simple_app.h"
+//#include "px4_simple_app.c"
+// #define MAVLINK_MESSAGE_LENGTHS {9, 31, 12, 0, 14, 28, 3, 32, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 20, 2, 25, 23, 30, 101, 22, 26, 16, 14, 28, 32, 28, 28, 22, 22, 21, 6, 6, 37, 4, 4, 2, 2, 4, 2, 2, 3, 13, 12, 37, 4, 0, 0, 27, 25, 0, 0, 0, 0, 0, 72, 26, 181, 225, 42, 6, 4, 0, 11, 18, 0, 0, 37, 20, 35, 33, 3, 0, 0, 0, 22, 39, 37, 53, 51, 53, 51, 0, 28, 56, 42, 33, 81, 0, 0, 0, 0, 0, 0, 26, 32, 32, 20, 32, 62, 44, 64, 84, 9, 254, 16, 12, 36, 44, 64, 22, 6, 14, 12, 97, 2, 2, 113, 35, 6, 79, 35, 35, 22, 13, 255, 14, 18, 43, 8, 22, 14, 36, 43, 41, 32, 243, 14, 93, 0, 100, 36, 60, 30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 42, 40, 63, 182, 40, 0, 0, 0, 0, 0, 0, 32, 52, 53, 6, 2, 38, 19, 254, 36, 30, 18, 18, 51, 9, 0}
+// #define MAVLINK_MESSAGE_CRCS {50, 124, 137, 0, 237, 217, 104, 119, 0, 0, 0, 89, 0, 0, 0, 0, 0, 0, 0, 0, 214, 159, 220, 168, 24, 23, 170, 144, 67, 115, 39, 246, 185, 104, 237, 244, 222, 212, 9, 254, 230, 28, 28, 132, 221, 232, 11, 153, 41, 39, 78, 196, 0, 0, 15, 3, 0, 0, 0, 0, 0, 167, 183, 119, 191, 118, 148, 21, 0, 243, 124, 0, 0, 38, 20, 158, 152, 143, 0, 0, 0, 106, 49, 22, 143, 140, 5, 150, 0, 231, 183, 63, 54, 47, 0, 0, 0, 0, 0, 0, 175, 102, 158, 208, 56, 93, 138, 108, 32, 185, 84, 34, 174, 124, 237, 4, 76, 128, 56, 116, 134, 237, 203, 250, 87, 203, 220, 25, 226, 46, 29, 223, 85, 6, 229, 203, 1, 195, 109, 168, 181, 47, 72, 131, 127, 0, 103, 154, 178, 200, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 163, 105, 151, 35, 150, 0, 0, 0, 0, 0, 0, 90, 104, 85, 95, 130, 184, 81, 8, 204, 49, 170, 44, 83, 46, 0}
+
+
+ //#define MAX_LEN_DEV_PATH 32
+
+
+
+// static const uint8_t mavlink_message_lengths[256] = MAVLINK_MESSAGE_LENGTHS;
+// static const uint8_t mavlink_message_crcs[256] = MAVLINK_MESSAGE_CRCS;
+
+ // static char _device[MAX_LEN_DEV_PATH];
+
+ // static int _uart_fd = -1;
+ // static bool _flow_control_enabled = false;
+
+
+
+
+
+// /*
+//  * State of the SBP message parser.
+//  * Must be statically allocated.
+//  */
+// sbp_state_t sbp_state;
+
+// /* SBP structs that messages from Piksi will feed. */
+// msg_pos_llh_t      pos_llh;
+// msg_baseline_ned_t baseline_ned;
+// msg_vel_ned_t      vel_ned;
+// msg_dops_t         dops;
+// msg_gps_time_t     gps_time;
+
+// /*
+//  * SBP callback nodes must be statically allocated. Each message ID / callback
+//  * pair must have a unique sbp_msg_callbacks_node_t associated with it.
+//  */
+// sbp_msg_callbacks_node_t pos_llh_node;
+// sbp_msg_callbacks_node_t baseline_ned_node;
+// sbp_msg_callbacks_node_t vel_ned_node;
+// sbp_msg_callbacks_node_t dops_node;
+// sbp_msg_callbacks_node_t gps_time_node;
+
+void sbp_pos_llh_callback(uint16_t sender_id, uint8_t len, uint8_t msg[], void *context)
+{
+  pos_llh = *(msg_pos_llh_t *)msg;
+}
+void sbp_baseline_ned_callback(uint16_t sender_id, uint8_t len, uint8_t msg[], void *context)
+{
+  baseline_ned = *(msg_baseline_ned_t *)msg;
+}
+void sbp_vel_ned_callback(uint16_t sender_id, uint8_t len, uint8_t msg[], void *context)
+{
+  vel_ned = *(msg_vel_ned_t *)msg;
+}
+void sbp_dops_callback(uint16_t sender_id, uint8_t len, uint8_t msg[], void *context)
+{
+  dops = *(msg_dops_t *)msg;
+}
+void sbp_gps_time_callback(uint16_t sender_id, uint8_t len, uint8_t msg[], void *context)
+{
+  gps_time = *(msg_gps_time_t *)msg;
+}
+/*
+ * Set up SwiftNav Binary Protocol (SBP) nodes; the sbp_process function will
+ * search through these to find the callback for a particular message ID.
+ *
+ * Example: sbp_pos_llh_callback is registered with sbp_state, and is associated
+ * with both a unique sbp_msg_callbacks_node_t and the message ID SBP_POS_LLH.
+ * When a valid SBP message with the ID SBP_POS_LLH comes through the UART, written
+ * to the FIFO, and then parsed by sbp_process, sbp_pos_llh_callback is called
+ * with the data carried by that message.
+ */
+
+
+
+void sbp_setup(void)
+{
+  /* SBP parser state must be initialized before sbp_process is called. */
+  sbp_state_init(&sbp_state);
+
+  /* Register a node and callback, and associate them with a specific message ID. */
+  sbp_register_callback(&sbp_state, SBP_MSG_GPS_TIME, &sbp_gps_time_callback,
+                        NULL, &gps_time_node);
+  sbp_register_callback(&sbp_state, SBP_MSG_POS_LLH, &sbp_pos_llh_callback,
+                        NULL, &pos_llh_node);
+  sbp_register_callback(&sbp_state, SBP_MSG_BASELINE_NED, &sbp_baseline_ned_callback,
+                        NULL, &baseline_ned_node);
+  sbp_register_callback(&sbp_state, SBP_MSG_VEL_NED, &sbp_vel_ned_callback,
+                        NULL, &vel_ned_node);
+  sbp_register_callback(&sbp_state, SBP_MSG_DOPS, &sbp_dops_callback,
+                        NULL, &dops_node);
+
+}
+ //uint16_t crc16_ccitt(const u8 *buf, u32 len, u16 crc);
+
 
 #define UBX_CONFIG_TIMEOUT	200		// ms, timeout for waiting ACK
 #define UBX_PACKET_TIMEOUT	2		// ms, if now data during this delay assume that full update received
@@ -76,6 +178,9 @@
 /**** Warning macros, disable to save memory */
 #define UBX_WARN(...)		{GPS_WARN(__VA_ARGS__);}
 #define UBX_DEBUG(...)		{/*GPS_WARN(__VA_ARGS__);*/}
+
+
+
 
 GPSDriverUBX::GPSDriverUBX(Interface gpsInterface, GPSCallbackPtr callback, void *callback_user,
 			   struct vehicle_gps_position_s *gps_position,
@@ -99,6 +204,92 @@ GPSDriverUBX::~GPSDriverUBX()
 		delete (_rtcm_message);
 	}
 }
+// int initialise_uart()
+// {
+// 	// open uart
+// 	_uart_fd = px4_open("/dev/ttyS3", O_RDWR | O_NOCTTY);
+// 	int termios_state = -1;
+
+// 	if (_uart_fd < 0) {
+// 		PX4_ERR("failed to open uart device!");
+// 		return -1;
+// 	}
+// 	PX4_INFO("here0");
+// 	// set baud rate
+// 	int speed = 115200;
+// 	printf("%d\n", speed);
+// 	struct termios uart_config;
+// 	tcgetattr(_uart_fd, &uart_config);
+// 	// clear ONLCR flag (which appends a CR for every LF)
+// 	//uart_config.c_oflag &= ~ONLCR;
+
+// 	/* Set baud rate */
+// 	if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
+// 		warnx("ERR SET BAUD %s: %d\n", _device, termios_state);
+// 		//::close(_uart_fd);
+// 		return -1;
+// 	}
+
+// 	if ((termios_state = tcsetattr(_uart_fd, TCSANOW, &uart_config)) < 0) {
+// 		PX4_WARN("ERR SET CONF %s\n", _device);
+// 		px4_close(_uart_fd);
+// 		return -1;
+// 	}
+
+// 	/* setup output flow control */
+// 	if (enable_flow_control(false)) {
+// 		PX4_WARN("hardware flow disable failed");
+// 	}
+
+// 	return _uart_fd;
+// }
+
+// int enable_flow_control(bool enabled)
+// {
+// 	struct termios uart_config;
+
+// 	int ret = tcgetattr(_uart_fd, &uart_config);
+
+// 	if (enabled) {
+// 		uart_config.c_cflag |= CRTSCTS;
+
+// 	} else {
+// 		uart_config.c_cflag &= ~CRTSCTS;
+// 	}
+
+// 	ret = tcsetattr(_uart_fd, TCSANOW, &uart_config);
+
+// 	if (!ret) {
+// 		_flow_control_enabled = enabled;
+// 	}
+
+// 	return ret;
+// }
+
+// int deinitialize_uart()
+// {
+// 	return close(_uart_fd);
+// }
+
+void runpiksi()
+{
+		// struct vehicle_gps_position_s pos;
+		// memset(&pos, 0, sizeof(pos));
+		// orb_advert_t _gps_pub = orb_advertise(ORB_ID(vehicle_gps_position), &pos);
+
+		// initialise_uart();
+		// px4_pollfd_struct_t fds[1];
+		// fds[0].fd = _uart_fd;
+		// fds[0].events = POLLIN;
+							// sbp_setup();
+
+						 //  	u16 crc;
+						 //  	const u8 *test_data = (uint8_t*)"123456789"; //this is just checking the crc
+						 //  	crc = crc16_ccitt(test_data, 0, 22);
+						 //  	PX4_INFO("crc %d",crc);
+						 //  	PX4_INFO("herecrcrc");
+	//piksi_uart(0,nullptr);
+}
 
 int
 GPSDriverUBX::configure(unsigned &baudrate, OutputMode output_mode)
@@ -121,9 +312,13 @@ GPSDriverUBX::configure(unsigned &baudrate, OutputMode output_mode)
 	//WARN  VER ext "                  PROTVER=20.00"
 	//However this is a string and it is not well documented, that PROTVER is always contained. Maybe there is a
 	//better way to check the protocol version?
-		decodeInit();
-		receive(20);
-		decodeInit();
+		//decodeInit();
+		//char serial_buf[1];
+		//mavlink_status_t serial_status = {};
+
+		runpiksi();
+		receive(0);
+		//decodeInit();
 
 
 	// if (_interface == Interface::UART) {
