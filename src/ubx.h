@@ -51,7 +51,6 @@
 
 
 
-
 #include "gps_helper.h"
 #include "../../definitions.h"
 
@@ -95,7 +94,6 @@ extern "C"
 #define MAVLINK_MESSAGE_CRCS {50, 124, 137, 0, 237, 217, 104, 119, 0, 0, 0, 89, 0, 0, 0, 0, 0, 0, 0, 0, 214, 159, 220, 168, 24, 23, 170, 144, 67, 115, 39, 246, 185, 104, 237, 244, 222, 212, 9, 254, 230, 28, 28, 132, 221, 232, 11, 153, 41, 39, 78, 196, 0, 0, 15, 3, 0, 0, 0, 0, 0, 167, 183, 119, 191, 118, 148, 21, 0, 243, 124, 0, 0, 38, 20, 158, 152, 143, 0, 0, 0, 106, 49, 22, 143, 140, 5, 150, 0, 231, 183, 63, 54, 47, 0, 0, 0, 0, 0, 0, 175, 102, 158, 208, 56, 93, 138, 108, 32, 185, 84, 34, 174, 124, 237, 4, 76, 128, 56, 116, 134, 237, 203, 250, 87, 203, 220, 25, 226, 46, 29, 223, 85, 6, 229, 203, 1, 195, 109, 168, 181, 47, 72, 131, 127, 0, 103, 154, 178, 200, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 163, 105, 151, 35, 150, 0, 0, 0, 0, 0, 0, 90, 104, 85, 95, 130, 184, 81, 8, 204, 49, 170, 44, 83, 46, 0}
 //#include <uORB/topics/vehicle_gps_position.h>
 #define MAX_LEN_DEV_PATH 32
-
 
 
 
@@ -612,19 +610,35 @@ typedef enum {
 
 
 
-	// void sbp_setup(void);
-	// void sbp_pos_llh_callback(uint16_t sender_id, uint8_t len, uint8_t msg[], void *context);
-	// void sbp_baseline_ned_callback(uint16_t sender_id, uint8_t len, uint8_t msg[], void *context);
-	// void sbp_vel_ned_callback(uint16_t sender_id, uint8_t len, uint8_t msg[], void *context);
-	// void sbp_dops_callback(uint16_t sender_id, uint8_t len, uint8_t msg[], void *context);
-	// void sbp_gps_time_callback(uint16_t sender_id, uint8_t len, uint8_t msg[], void *context);
-	// int initialise_uart(void);
-	// int enable_flow_control(bool enabled);
-	// int deinitialize_uart(void);
-	 //void runpiksi(void);
+	void sbp_setup(void);
+	void sbp_pos_llh_callback(uint16_t sender_id, uint8_t len, uint8_t msg[], void *context);
+	void sbp_baseline_ned_callback(uint16_t sender_id, uint8_t len, uint8_t msg[], void *context);
+	void sbp_vel_ned_callback(uint16_t sender_id, uint8_t len, uint8_t msg[], void *context);
+	void sbp_dops_callback(uint16_t sender_id, uint8_t len, uint8_t msg[], void *context);
+	void sbp_gps_time_callback(uint16_t sender_id, uint8_t len, uint8_t msg[], void *context);
+	int initialise_uart(void);
+	int enable_flow_control(bool enabled);
+	int deinitialize_uart(void);
+	void runpiksi(void);
+
+
+
+int initialise_uart(void);
+int enable_flow_control(bool enabled);
+int deinitialize_uart(void);
+void runpiksi(void);
+
+
+//static char _device[MAX_LEN_DEV_PATH];
+
+//static int _uart_fd = -1;
+//static bool _flow_control_enabled = false;
 
 
  //uint16_t crc16_ccitt(const u8 *buf, u32 len, u16 crc);
+
+
+
 
 
 
@@ -710,25 +724,6 @@ private:
 	 */
 	inline bool configureMessageRateAndAck(uint16_t msg, uint8_t rate, bool report_ack_error = false);
 
-
-
-	//  char _device2[MAX_LEN_DEV_PATH];
-	// int _uart_fd = -1;
-	// bool _flow_control_enabled = false;
-	// //__EXPORT int px4_simple_app_main(int argc, char *argv[]);
-	//  const uint8_t mavlink_message_lengths[256] = MAVLINK_MESSAGE_LENGTHS;
-	//  const uint8_t mavlink_message_crcs[256] = MAVLINK_MESSAGE_CRCS;
-
-
-
-	// //__EXPORT int initialise_uart(void);
-	//  int enable_flow_control(bool enabled);
-	//  int deinitialize_uart(void);
-	// bool thread_should_exit = false;		/**< daemon exit flag */
-	// bool thread_running = false;		/**< daemon status flag */
-	// //int piksi_uart(int argc, char *argv[]);
-	
-	// int initialise_uart(void);
 	/**
 	 * Calculate FNV1 hash
 	 */
@@ -763,6 +758,25 @@ private:
 
 	// ublox Dynamic platform model default 7: airborne with <2g acceleration
 	uint8_t _dyn_model{7};
+
+		 char _device2[MAX_LEN_DEV_PATH];
+	int _uart_fd = -1;
+	bool _flow_control_enabled = false;
+	//__EXPORT int px4_simple_app_main(int argc, char *argv[]);
+	 const uint8_t mavlink_message_lengths[256] = MAVLINK_MESSAGE_LENGTHS;
+	 const uint8_t mavlink_message_crcs[256] = MAVLINK_MESSAGE_CRCS;
+
+
+
+	//__EXPORT int initialise_uart(void);
+	 int enable_flow_control(bool enabled);
+	 int deinitialize_uart(void);
+	bool thread_should_exit = false;		/**< daemon exit flag */
+	bool thread_running = false;		/**< daemon status flag */
+	//int piksi_uart(int argc, char *argv[]);
+	
+	int initialise_uart(void);
+	int flag = 1;
 };
 
 #endif /* UBX_H_ */
