@@ -17,11 +17,8 @@
 
 
 #include "tutorial_implementation.h"
-#include <stdint.h>
 
-#include <px4_config.h>
-#include <px4_tasks.h>
-#include <px4_posix.h>
+
 
 /*
  * FIFO to hold received UART bytes before libsbp parses them.
@@ -79,14 +76,14 @@ uint32_t fifo_read(uint8_t *buff, uint32_t n, void *context) {
       break;
   return i;
 }
-
-void printall()
-{
-  for(int i = 0; i <FIFO_LEN; i++)
-  {
-    printf("%02X",sbp_msg_fifo[i]);
-  }
-}
+//used for debugging
+// void printall()
+// {
+//   for(int i = 0; i <FIFO_LEN; i++)
+//   {
+//     PX4_INFO("%02X",sbp_msg_fifo[i]);
+//   }
+// }
 
 /* Return 1 if true, 0 otherwise. */
 uint8_t fifo_full(void){

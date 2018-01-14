@@ -158,6 +158,9 @@
  * \return `SBP_OK` (0) if successful, `SBP_CALLBACK_ERROR` if callback was
  *         already registered for that message type.
  */
+
+
+
 s8 sbp_register_callback(sbp_state_t *s, u16 msg_type, sbp_msg_callback_t cb, void *context,
                          sbp_msg_callbacks_node_t *node)
 {
