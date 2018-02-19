@@ -733,7 +733,8 @@ private:
 	struct satellite_info_s *_satellite_info {nullptr};
 	uint64_t		_last_timestamp_time{0};
 	bool			_configured{false};
-	ubx_ack_state_t		_ack_state{UBX_ACK_IDLE};
+	//ZZ Changes
+	//ubx_ack_state_t		_ack_state{UBX_ACK_IDLE};
 	bool			_got_posllh{false};
 	bool			_got_velned{false};
 	ubx_decode_state_t	_decode_state{};
@@ -744,7 +745,7 @@ private:
 	uint8_t			_rx_ck_a{};
 	uint8_t			_rx_ck_b{};
 	gps_abstime		_disable_cmd_last{0};
-	uint16_t		_ack_waiting_msg{0};
+	//uint16_t		_ack_waiting_msg{0};
 	ubx_buf_t		_buf{};
 	uint32_t		_ubx_version{0};
 	bool			_use_nav_pvt{false};
@@ -752,27 +753,27 @@ private:
 
 	rtcm_message_t	*_rtcm_message{nullptr};
 
-	const Interface		_interface;
+	//const Interface		_interface;
 	uint32_t _survey_in_acc_limit;
 	uint32_t _survey_in_min_dur;
 
 	// ublox Dynamic platform model default 7: airborne with <2g acceleration
-	uint8_t _dyn_model{7};
+	//uint8_t _dyn_model{7};
 
 		 char _device2[MAX_LEN_DEV_PATH];
 	int _uart_fd = -1;
 	bool _flow_control_enabled = false;
 	//__EXPORT int px4_simple_app_main(int argc, char *argv[]);
-	 const uint8_t mavlink_message_lengths[256] = MAVLINK_MESSAGE_LENGTHS;
-	 const uint8_t mavlink_message_crcs[256] = MAVLINK_MESSAGE_CRCS;
+	 //const uint8_t mavlink_message_lengths[256] = MAVLINK_MESSAGE_LENGTHS;
+	 //const uint8_t mavlink_message_crcs[256] = MAVLINK_MESSAGE_CRCS;
 
 
 
 	//__EXPORT int initialise_uart(void);
 	 int enable_flow_control(bool enabled);
 	 int deinitialize_uart(void);
-	bool thread_should_exit = false;		/**< daemon exit flag */
-	bool thread_running = false;		/**< daemon status flag */
+	//bool thread_should_exit = false;		/**< daemon exit flag */
+	//bool thread_running = false;		/**< daemon status flag */
 	//int piksi_uart(int argc, char *argv[]);
 	
 	int initialise_uart(void);

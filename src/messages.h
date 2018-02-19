@@ -39,7 +39,7 @@
  * Graupner HoTT Telemetry message generation.
  *
  */
-#ifndef MESSAGES_H_
+#ifndef MESSAGES_H
 #define MESSAGES_H
 
 #include <stdlib.h>

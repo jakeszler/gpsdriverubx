@@ -189,10 +189,10 @@ GPSDriverUBX::GPSDriverUBX(Interface gpsInterface, GPSCallbackPtr callback, void
 	: GPSHelper(callback, callback_user)
 	, _gps_position(gps_position)
 	, _satellite_info(satellite_info)
-	, _interface(gpsInterface)
+	//, _interface(gpsInterface)
 	, _survey_in_acc_limit(UBX_TX_CFG_TMODE3_SVINACCLIMIT)
 	, _survey_in_min_dur(UBX_TX_CFG_TMODE3_SVINMINDUR)
-	, _dyn_model(dynamic_model)
+	//, _dyn_model(dynamic_model)
 {
 	decodeInit();
 }

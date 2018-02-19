@@ -1,5 +1,5 @@
 #include "sbp2.h"
-
+#define NULL 0
 
 sbp_state_t sbp_state;
 /* SBP structs that messages from Piksi will feed. */

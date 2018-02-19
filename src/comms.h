@@ -38,7 +38,7 @@
  */
 
 
-#ifndef COMMS_H_
+#ifndef COMMS_H
 #define COMMS_H
 
 __EXPORT int open_uart(const char *device);
