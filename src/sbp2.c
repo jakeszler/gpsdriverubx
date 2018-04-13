@@ -1,6 +1,5 @@
 #include "sbp2.h"
 #define NULL 0
-
 sbp_state_t sbp_state;
 /* SBP structs that messages from Piksi will feed. */
   msg_pos_llh_t      pos_llh;
@@ -14,7 +13,7 @@ sbp_state_t sbp_state;
    */
   sbp_msg_callbacks_node_t pos_llh_node;
   sbp_msg_callbacks_node_t baseline_ned_node;
-  sbp_msg_callbacks_node_t vel_ned_node;
+  sbp_msg_callbacks_node_t vel_ned_node ;
   sbp_msg_callbacks_node_t dops_node;
   sbp_msg_callbacks_node_t gps_time_node;
 
